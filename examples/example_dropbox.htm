@@ -33,8 +33,9 @@
 
 <body>
   <h1>Drop items into the box</h1>
-  <h1 id='signal'>.</h1>
-  <div id="box">
+  <input type="text" id="total">
+  <textarea name="logs" id="logs" cols="30" rows="10"></textarea> 
+ <div id="box">
     <div id="item">
       item
     </div>
@@ -80,14 +81,15 @@
       './js/compatibility.js',
       '../js/objectdetect.js',
       '../js/objectdetect.handfist.js',
-      '../js/objectdetect.handopen.js',
+      '../js/palm.js',
+      '../js/hand.js',
       './js/jquery-3.2.1.min.js'],
     
       function() {
         var canvas = $('<canvas style="position: fixed; z-index: 1001;top: 10px; right: 10px; opacity: 0.9">').get(0),
           context = canvas.getContext('2d'),
           video = document.createElement('video'),
-          dragging = true,
+          dragging = false,
           fist_pos_old,
           current_coord,
           detector;
@@ -125,41 +127,73 @@
                   var width = ~~(80 * video.videoWidth / video.videoHeight);
                   var height = 80;
                   detector = new objectdetect.detector(width, height, 1.1, objectdetect.handfist);
-                  open_detector = new objectdetect.detector(width, height, 1, objectdetect.handopen);
+                  palm_detector = new objectdetect.detector(width, height, 1.1, objectdetect.palm);
+                  hand_detector = new objectdetect.detector(width, height, 1.01, objectdetect.hand);
                 }
               
             /* Draw video overlay: */
             canvas.width = ~~(100 * video.videoWidth / video.videoHeight);
             canvas.height = 100;
             context.drawImage(video, 0, 0, canvas.clientWidth, canvas.clientHeight);
-            
+            var palm = 0;
+            var fist = 0;
             var coords = detector.detect(video, 1);
+            var palms = palm_detector.detect(video,1);;
+            var hand = hand_detector.detect(video,1);
+            var total ='', add='', hand_pos, fist_pos, palm_pos;
+            if(hand[0]){
+              hand_pos=hand[0];
+              for (var i = hand.length - 1; i >= 0; --i)
+                if (hand[i][4] > hand_pos[4]) hand_pos = hand[i];
+              add += 'hand-'+hand_pos[4];
+            }
             if( coords[0] ){
-              current_coord = coords[0];
-              if(!dragging){
+              fist_pos = coords[0];
+              for (var i = coords.length - 1; i >= 0; --i)
+                if (coords[i][4] > fist_pos[4]) fist_pos = coords[i];
+               add += 'fist-'+fist_pos[4];
+            }
+             
+              if(palms[0]){
+                palm_pos = palms[0];
+                for (var i = palms.length - 1; i >= 0; --i)
+                  if (palms[i][4] > palm_pos[4]) palm_pos = palms[i];
+                add += 'palm-' + palm_pos[4];
+              }
+              var sum = 0;
+              if(hand_pos){
+                if(hand_pos[4]>70) sum +=1;
+                else sum -= 1;
+              }
+              if(palm_pos){
+                sum -= 1;
+              };
+              if(fist_pos){
+                sum+=1;
+              }
+              $('#total').val(total+sum+'|'+add);
+
+              if(sum>0){
+                current_coord = hand_pos || fist_pos;
                 dragging = true;
                 $('#cursor').addClass('grab');
-              }
-            }else{
-              coords = open_detector.detect(video,1);
-              if(coords[0]){
-                current_coord = coords[0];
+              }else{
+                current_coord = palm_pos || hand_pos;
                 dragging = false;
                 $('#cursor').removeClass('grab');
               }
-            }
             if (current_coord) {
-              var coord = current_coord;
+              var coord =    current_coord;
               /* Rescale coordinates from detector to video coordinate space: */
               coord[0] *= video.videoWidth / detector.canvas.width;
               coord[1] *= video.videoHeight / detector.canvas.height;
               coord[2] *= video.videoWidth / detector.canvas.width;
               coord[3] *= video.videoHeight / detector.canvas.height;
             
-              /* Find coordinates with maximum confidence: */
-              var coord = coords[0];
+              /* Find coordinates with maximum confidence: 
+              var coord = all_detect[0];
               for (var i = coords.length - 1; i >= 0; --i)
-                if (coords[i][4] > coord[4]) coord = coords[i];
+                if (coords[i][4] > coord[4]) coord = coords[i];*/
               
               /* Get hand position */
               var fist_pos = [coord[0] + coord[2] / 2, coord[1] + coord[3] / 2];
@@ -174,7 +208,11 @@
               /* Draw coordinates on video overlay: */
               context.beginPath();
               context.lineWidth = '2';
-              context.fillStyle = 'rgba(0, 255, 255, 0.5)';
+              if(dragging)
+                context.fillStyle = 'rgba(0, 255, 255, 0.5)';
+              else
+                context.fillStyle = 'rgba(255, 0, 255, 0.5)';
+                
               context.fillRect(
                 coord[0] / video.videoWidth * canvas.clientWidth,
                 coord[1] / video.videoHeight * canvas.clientHeight,
