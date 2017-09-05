@@ -5,9 +5,10 @@
   <title>Gesture Scroll Example</title>
   <style>
     #item{
-      position: absolute;
-      width:50px;
-      height: 50px;
+      position: relative;
+      width:100px;
+      height: 100px;
+      background:gray;
     }
     #cursor{
       position: absolute;
@@ -22,6 +23,7 @@
       display: none;
     }
     #box{
+      position: relative;
       width: 100vw;
       height: 60vh;
     }
@@ -34,9 +36,12 @@
 <body>
   <h1>Drop items into the box</h1>
   <input type="text" id="total">
-  <textarea name="logs" id="logs" cols="30" rows="10"></textarea> 
- <div id="box">
-    <div id="item">
+  <label for="#adjust">
+    Confident Level
+  </label>
+  <input type="number" id='#adjust' value='50'>
+  <hr>
+    <div id="item" style='top:50px; left:150px'>
       item
     </div>
     <div id="cursor" >
@@ -47,6 +52,7 @@
   <p>Drag and drop this link into your bookmarks, use it on any website you want to scroll via hand gestures:
   <a id="link" href="">start gesture scrolling</a></p>
   <script>
+    var boundary =50;
   var autoplay = function() {
     function getScripts(urls, callback) {
       var numDone = 0;
@@ -80,12 +86,14 @@
     getScripts([
       './js/compatibility.js',
       '../js/objectdetect.js',
-      '../js/objectdetect.handfist.js',
       '../js/palm.js',
       '../js/hand.js',
       './js/jquery-3.2.1.min.js'],
     
       function() {
+        $('#adjust').change(function(){
+          boundary = $(this).val();
+        });
         var canvas = $('<canvas style="position: fixed; z-index: 1001;top: 10px; right: 10px; opacity: 0.9">').get(0),
           context = canvas.getContext('2d'),
           video = document.createElement('video'),
@@ -115,6 +123,9 @@
           cursor_pos = cursor.offset();
           cursor.animate({ left: (left)+'px', top: (top) + 'px' },0);
           e = document.elementFromPoint(cursor_pos.top, cursor_pos.left);
+          if(e && dragging){
+            $(e).animate({ left: (left)+'px', top: (top) + 'px' },0)
+          }
         }
         function play() {
           compatibility.requestAnimationFrame(play);
@@ -126,8 +137,8 @@
                   if (!detector) {
                   var width = ~~(80 * video.videoWidth / video.videoHeight);
                   var height = 80;
-                  detector = new objectdetect.detector(width, height, 1.1, objectdetect.handfist);
-                  palm_detector = new objectdetect.detector(width, height, 1.1, objectdetect.palm);
+                  
+                  detector = new objectdetect.detector(width, height, 1.1, objectdetect.palm);
                   hand_detector = new objectdetect.detector(width, height, 1.01, objectdetect.hand);
                 }
               
@@ -137,8 +148,8 @@
             context.drawImage(video, 0, 0, canvas.clientWidth, canvas.clientHeight);
             var palm = 0;
             var fist = 0;
-            var coords = detector.detect(video, 1);
-            var palms = palm_detector.detect(video,1);;
+            
+            var palms = detector.detect(video,1);;
             var hand = hand_detector.detect(video,1);
             var total ='', add='', hand_pos, fist_pos, palm_pos;
             if(hand[0]){
@@ -147,12 +158,7 @@
                 if (hand[i][4] > hand_pos[4]) hand_pos = hand[i];
               add += 'hand-'+hand_pos[4];
             }
-            if( coords[0] ){
-              fist_pos = coords[0];
-              for (var i = coords.length - 1; i >= 0; --i)
-                if (coords[i][4] > fist_pos[4]) fist_pos = coords[i];
-               add += 'fist-'+fist_pos[4];
-            }
+           
              
               if(palms[0]){
                 palm_pos = palms[0];
@@ -162,19 +168,16 @@
               }
               var sum = 0;
               if(hand_pos){
-                if(hand_pos[4]>70) sum +=1;
+                if(hand_pos[4]>boundary) sum +=1;
                 else sum -= 1;
               }
               if(palm_pos){
                 sum -= 1;
               };
-              if(fist_pos){
-                sum+=1;
-              }
               $('#total').val(total+sum+'|'+add);
 
-              if(sum>0){
-                current_coord = hand_pos || fist_pos;
+              if(sum>=0){
+                current_coord = hand_pos;
                 dragging = true;
                 $('#cursor').addClass('grab');
               }else{
@@ -226,6 +229,7 @@
     );
   };
   document.getElementById('link').href = 'javascript:(' + autoplay.toString() + ')()';
+  
     </script>
 </body>
 </html>
