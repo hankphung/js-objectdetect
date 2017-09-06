@@ -143,6 +143,9 @@
           item = $('#item');
           cursor_pos = cursor.offset();
           cursor.animate({ left: (left)+'px', top: (top) + 'px' },0);
+          if(hover(cursor,item)){
+            item.animate({background: '#eee'});
+          }
           if(dragging && hover(cursor,item)){
             item.animate({ left: (left)+'px', top: (top) + 'px' },0)
           }
