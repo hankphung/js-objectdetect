@@ -7,8 +7,8 @@
     #item{
       position: absolute;
       width:80px;
-      top:30%;
-      left: 30%;
+      top:20%;
+      left: 20%;
       height: 80px;
       background:gray;
     }
@@ -33,8 +33,7 @@
     }
     #box{
       position: relative;
-      width: 100vw;
-      height: 60vh;
+      border:1px solid #aaa;
     }
     #signal{
       color:green;
@@ -109,6 +108,7 @@
           dragging = false,
           fist_pos_old,
           current_coord,
+          box_set = false,
           detector;
         
         document.getElementsByTagName('body')[0].appendChild(canvas);
@@ -152,7 +152,11 @@
           if (video.paused) video.play();
           
           if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
-            
+            if(!box_set){
+              $('#box').width(video.videoWidth);
+              $('#box').width(video.videoHeight);
+              box_set = true;
+            }
             /* Prepare the detector once the video dimensions are known: */
                   if (!detector) {
                   var width = ~~(80 * video.videoWidth / video.videoHeight);
